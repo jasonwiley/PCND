@@ -1,0 +1,38 @@
+#!/bin/bash
+#SBATCH -N 1
+#SBATCH -n 32
+#SBATCH -t 72:00:00
+#SBATCH -p gpu2
+#SBATCH --gres=gpu:2
+#SBATCH -A your_allocation_name
+#SBATCH -J your_job_name
+#SBATCH -o file_name.log
+#SBATCH -e error_file_name.log
+#SBATCH --mail-user myemail@email.com
+#SBATCH --mail-type ALL
+
+date
+
+module unload cuda
+module load cuda/12.2.1
+
+SIF=/file/path/to/container/PCND_volta.sif
+CUDA_LIB=/usr/local/packages/cuda/12.2.1/jd2fi7s/targets/x86_64-linux/lib
+HOOMD_PYTHON=/hoomd/lib/python/lib/python
+PYTHON=/opt/conda/envs/PCND/bin/python3.7
+
+run_case () {
+    DIR=$1
+    GPU=$2
+    singularity exec --nv \
+      --bind /work \
+      --bind /usr/local/packages/cuda/12.2.1 \
+      --env LD_LIBRARY_PATH=${CUDA_LIB} \
+      $SIF \
+      bash -c "cd ${DIR} && export PYTHONPATH=${HOOMD_PYTHON} && ${PYTHON} N*.py --gpu=${GPU}"
+}
+#0 and 1 assign the gpu in the following
+run_case /path/to/job/folder_1 0 &
+run_case /path/to/job/folder_2 1 &
+
+wait
